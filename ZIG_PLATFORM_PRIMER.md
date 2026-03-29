@@ -102,3 +102,65 @@ In `Main.roc`, targets are defined as:
     }
 ```
 *(Note: Legacy platforms use `.a`, modern ones use `.rh` for the surgical linker.)*
+
+## 6. App-to-Host Calls (Hosted Functions)
+
+To allow an app to call a function provided by the host (e.g., `Stdout.line!` or `Add.add`), the platform must define a **Type Module**.
+
+### 1. Define the Type Module (`Add.roc`)
+In the platform, create a module that defines an opaque type and the host functions as **annotation-only** declarations (no body).
+
+```roc
+# platform/Add.roc
+Add := {} . {
+    # No body = host-provided "hosted function"
+    add : I32, I32 => I32
+}
+```
+
+### 2. Expose and Import in Platform (`Main.roc`)
+The platform must `expose` this module.
+
+```roc
+platform ""
+    requires {} { main! : {} => {} }
+    exposes [Add]
+    packages {}
+    provides { main_for_host!: "main" }
+
+import Add
+```
+
+### 3. Call from the App (`app.roc`)
+The app imports the module from the platform (`pf`) and calls the function using the `Type.function` syntax.
+
+```roc
+import pf.Add
+
+main! = |{}|
+    result = Add.add(1, 2)
+    # ...
+```
+
+### 4. Implementation in Zig Host (`host.zig`)
+The host provides these functions in an array passed via `RocOps`. **Crucial:** The array must be sorted **alphabetically** by the fully-qualified Roc name (e.g., `Add.add`, `Stdout.line!`).
+
+```zig
+// Zig Host implementation
+fn hostedAdd(ops: *RocOps, ret: *i32, args: *const struct { a: i32, b: i32 }) callconv(.C) void {
+    ret.* = args.a + args.b;
+}
+
+const hosted_fns = [_]HostedFn{
+    hostedFn(&hostedAdd), // "Add.add"
+};
+
+// Pass to Roc in main
+var ops = RocOps{
+    // ... other fields
+    .hosted_fns = .{
+        .count = hosted_fns.len,
+        .fns = @constCast(&hosted_fns),
+    },
+};
+```

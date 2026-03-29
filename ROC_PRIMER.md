@@ -64,7 +64,28 @@ main! = |args|
 - `List(T)`: `[1, 2, 3]`
 - `Dict(K, V)`: Key-value map.
 
-## 4. Opaque Types
+## 4. Type Modules and Hosted Functions
+
+A **Type Module** is an opaque type with associated functions. These are often used by platforms to expose host-provided functionality.
+
+```roc
+# Module name: Stdout
+Stdout := {} . {
+    # Annotation without a body = host-provided "hosted function"
+    line! : Str => {}
+}
+```
+
+Usage in an app:
+```roc
+import pf.Stdout
+
+main! = |{}|
+    Stdout.line!("Hello from the host!")
+    Ok({})
+```
+
+## 5. Opaque Types
 - `MyType := Str`
 - `@MyType("secret")`
 - Unwrapping: `|@MyType(inner)| inner`
