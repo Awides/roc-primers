@@ -1,0 +1,1 @@
+app [main] { pf: platform "https://github.com/roc-lang/basic-cli/releases/download/0.17.0/9v9su966shv6_7f_9lky69x89_56x9-it57_u02_f_m.tar.br" }\n\nimport pf.Stdout\n\nmain! = \n    Stdout.line! "Hello, Roc!"
